@@ -1,7 +1,6 @@
 import os
 
 import discord
-import datetime
 from datetime import datetime
 
 import motor
