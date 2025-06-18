@@ -30,7 +30,7 @@ class FitnessTracker(commands.Cog):
 
     def create_or_update_progress(self, user_id, height, weight, age, gender):
         """Create or update user progress"""
-        now = datetime.datetime.utcnow().isoformat()
+        now = datetime.utcnow().isoformat()
 
         user_progress.update_one(
             {"user_id": user_id},
@@ -49,7 +49,7 @@ class FitnessTracker(commands.Cog):
 
     def create_or_update_goal(self, user_id, target_weight, goal_type, start_weight, experience):
         """Create or update user goal"""
-        start_date = datetime.datetime.utcnow().isoformat()
+        start_date = datetime.utcnow().isoformat()
 
         user_goals.update_one(
             {"user_id": user_id},
@@ -97,11 +97,11 @@ class FitnessTracker(commands.Cog):
                     bmi = (start_weight / (total_inches ** 2)) * 703
 
                     # ✅ Fix: Await MongoDB call
-                    await self.parent.user_progress.update_one(
-                        {"user_id": ctx.author.id},  # <-- search for existing record
+                    await self.parent.db.user_progress.update_one(
+                        {"user_id": ctx.author.id},
                         {
                             "$set": {
-                                "user_id": ctx.author.id,  # <-- ensure this is saved!
+                                "user_id": ctx.author.id,
                                 "height": total_inches,
                                 "start_weight": start_weight,
                                 "current_weight": start_weight,
@@ -283,7 +283,7 @@ class FitnessTracker(commands.Cog):
 
                     try:
                         user_id = self.original_command.ctx.author.id
-                        user_progress = await self.db.user_progress.find_one({"user_id": interaction.user.id})
+                        user_progress = await self.original_command.db.user_progress.find_one({"user_id": user_id})
 
 
                         if not user_progress:
@@ -293,7 +293,7 @@ class FitnessTracker(commands.Cog):
                         current_weight = user_progress['current_weight']
 
                         # Save goal
-                        await self.original_command.user_goals.update_one(
+                        await self.original_command.db.user_goals.update_one(
                             {"user_id": user_id},
                             {
                                 "$set": {
@@ -424,7 +424,8 @@ class FitnessTracker(commands.Cog):
 
                 # Ensure start_date is datetime
                 if isinstance(start_date, str):
-                    start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S.%f")
+                    start_date = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S.%f")
+
 
                 if goal_type == 'gain':
                     progress = current_weight - goal_start_weight
@@ -436,7 +437,8 @@ class FitnessTracker(commands.Cog):
                     target_total = goal_start_weight - target_weight
 
                 percentage = min(100, max(0, (progress / target_weight) * 100))
-                days_active = (datetime.datetime.utcnow() - start_date).days
+                days_active = (datetime.utcnow() - start_date).days
+
 
                 embed.add_field(name="🎯 Goal Progress",
                                 value=f"**Goal:** {goal_type.capitalize()} {target_weight}lbs\n"
@@ -453,7 +455,7 @@ class FitnessTracker(commands.Cog):
                 # If last_updated is a datetime object, format nicely
                 if isinstance(last_updated, str):
                     try:
-                        last_updated_dt = datetime.datetime.strptime(last_updated, "%Y-%m-%d %H:%M:%S.%f")
+                        last_updated_dt = datetime.strptime(last_updated, "%Y-%m-%d %H:%M:%S.%f")
                     except Exception:
                         last_updated_dt = None
                 else:
